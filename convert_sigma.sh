@@ -1,64 +1,31 @@
 #!/bin/bash
-# Sigma to Kibana Detection Rules Converter
-#
-# This script converts Sigma rules to Kibana detection rules in EQL format
-# It handles errors gracefully and logs successful and failed conversions
-#
-# Usage: ./convert_sigma.sh [options]
-#
-# Options:
-#   -s, --source DIR      Source directory containing Sigma rules (default: ./rules)
-#   -o, --output DIR      Output directory for converted rules (default: ./converted_rules)
-#   -l, --logs DIR        Directory for logs (default: ./conversion_logs)
-#   -t, --target TYPE     Target query type: eql, lucene, esql (default: eql)
-#   -f, --format FORMAT   Output format (default: siem_rule_ndjson)
-#   -p, --pipeline NAME   Pipeline to use (default: ecs_windows)
-#   -h, --help            Display this help message and exit
-#
-# Examples:
-#   ./convert_sigma.sh --source ~/sigma/rules/windows --output ~/kibana_rules
-#   ./convert_sigma.sh -s ./my_rules -t lucene -p my_custom_pipeline
-#
-# Prerequisites:
-#   - sigma-cli must be installed: pip3 install sigma-cli
-#   - Elasticsearch backend must be installed: sigma plugin install elasticsearch
-#
-# Setup:
-#   1. Save this script as convert_sigma.sh
-#   2. Make it executable: chmod +x convert_sigma.sh
-#   3. Run it with appropriate options
-#   4. Import the resulting all_kibana_rules.ndjson into Kibana Security
-#
-# Notes on Common Issues:
-#   - Some rules using fieldref feature (e.g., TargetFilename|fieldref: Image) will fail
-#     with "ES Lucene backend can't handle field references" error
-#   - These must be manually converted or modified to work with Kibana
-#   - Using --target eql may help with some field reference issues
-#
-# Default values
-SOURCE_DIR="./rules"
-OUTPUT_DIR="./converted_rules"
-LOG_DIR="./conversion_logs"
-TARGET="eql"
-FORMAT="siem_rule_ndjson"
-PIPELINE="ecs_windows"
 
 # Display help message
 show_help() {
-  echo "Usage: $0 [options]"
+  echo "Usage: $0 -s SOURCE_DIR -o OUTPUT_DIR -l LOG_DIR [-t TARGET] [-f FORMAT] [-p PIPELINE]"
   echo "Convert Sigma rules to Kibana detection rules"
   echo ""
-  echo "Options:"
-  echo "  -s, --source DIR      Source directory containing Sigma rules (default: ./rules)"
-  echo "  -o, --output DIR      Output directory for converted rules (default: ./converted_rules)"
-  echo "  -l, --logs DIR        Directory for logs (default: ./conversion_logs)"
+  echo "Required options:"
+  echo "  -s, --source DIR      Source directory containing Sigma rules"
+  echo "  -o, --output DIR      Output directory for converted rules"
+  echo "  -l, --logs DIR        Directory for logs"
+  echo ""
+  echo "Optional options:"
   echo "  -t, --target TYPE     Target query type: eql, lucene, esql (default: eql)"
   echo "  -f, --format FORMAT   Output format (default: siem_rule_ndjson)"
   echo "  -p, --pipeline NAME   Pipeline to use (default: ecs_windows)"
   echo "  -h, --help            Display this help message and exit"
   echo ""
-  echo "Example: $0 --source ~/sigma/rules/windows --output ~/kibana_rules"
+  echo "Example: $0 -s /home/user/sigma/rules/windows -o /home/user/converted_rules -l /home/user/logs"
 }
+
+# Initialize variables
+SOURCE_DIR=""
+OUTPUT_DIR=""
+LOG_DIR=""
+TARGET="eql"
+FORMAT="siem_rule_ndjson"
+PIPELINE="ecs_windows"
 
 # Parse command line arguments
 while [[ $# -gt 0 ]]; do
@@ -98,6 +65,13 @@ while [[ $# -gt 0 ]]; do
       ;;
   esac
 done
+
+# Check required parameters
+if [ -z "$SOURCE_DIR" ] || [ -z "$OUTPUT_DIR" ] || [ -z "$LOG_DIR" ]; then
+  echo "Error: Missing required parameters!"
+  show_help
+  exit 1
+fi
 
 # Check if source directory exists
 if [ ! -d "$SOURCE_DIR" ]; then
